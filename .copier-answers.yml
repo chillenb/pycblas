@@ -1,0 +1,12 @@
+# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
+_commit: 2024.04.23
+_src_path: gh:scientific-python/cookie
+backend: skbuild
+email: chillenb.lists@gmail.com
+full_name: Christopher Hillenbrand
+license: Apache
+org: chillenb
+project_name: pycblas
+project_short_description: Python CBLAS wrapper
+url: https://github.com/chillenb/pycblas
+vcs: true
