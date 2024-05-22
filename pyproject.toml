@@ -1,5 +1,5 @@
 [build-system]
-requires = ["pybind11", "scikit-build-core"]
+requires = ["scikit-build-core", "cython"]
 build-backend = "scikit_build_core.build"
 
 
@@ -60,11 +60,11 @@ Changelog = "https://github.com/chillenb/pycblas/releases"
 minimum-version = "0.4"
 build-dir = "build/{wheel_tag}"
 metadata.version.provider = "scikit_build_core.metadata.setuptools_scm"
-sdist.include = ["src/pycblas/_version.py"]
+sdist.include = ["src/_version.py"]
 
 
 [tool.setuptools_scm]
-write_to = "src/pycblas/_version.py"
+write_to = "src/_version.py"
 
 
 [tool.cibuildwheel]

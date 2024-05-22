@@ -1,8 +1,33 @@
-cmake_minimum_required(VERSION 3.15...3.26)
-project(${SKBUILD_PROJECT_NAME} LANGUAGES CXX)
+project(${SKBUILD_PROJECT_NAME} LANGUAGES C)
 
-set(PYBIND11_FINDPYTHON ON)
-find_package(pybind11 CONFIG REQUIRED)
+find_package(
+  Python
+  COMPONENTS Interpreter Development.Module
+  REQUIRED)
 
-pybind11_add_module(_core MODULE src/main.cpp)
-install(TARGETS _core DESTINATION ${SKBUILD_PROJECT_NAME})
+add_custom_command(
+  OUTPUT pycblas.c
+  COMMENT
+  "Making ${CMAKE_CURRENT_BINARY_DIR}/src/pycblas.c from ${CMAKE_CURRENT_SOURCE_DIR}/src/pycblas.pyx"
+  COMMAND Python::Interpreter -m cython
+          "${CMAKE_CURRENT_SOURCE_DIR}/src/pycblas.pyx" --output-file pycblas.c
+  DEPENDS pycblas.pyx
+  VERBATIM)
+
+python_add_library(pycblas MODULE pycblas.c WITH_SOABI)
+include_directories(src)
+
+find_library(CBLAS_LIBRARY NAMES cblas HINTS Python_SITELIB REQUIRED)
+include(FindPackageHandleStandardArgs)
+
+find_package_handle_standard_args(cblas DEFAULT_MSG CBLAS_LIBRARY)
+mark_as_advanced(CBLAS_LIBRARY)
+add_library(cblas::cblas SHARED IMPORTED)
+
+set_target_properties(cblas::cblas PROPERTIES IMPORTED_LOCATION ${CBLAS_LIBRARY})
+
+target_link_libraries(pycblas PRIVATE cblas::cblas)
+
+
+install(TARGETS pycblas DESTINATION .)
+
