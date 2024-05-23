@@ -1,21 +1,15 @@
-project(${SKBUILD_PROJECT_NAME} LANGUAGES C)
+project(${SKBUILD_PROJECT_NAME} LANGUAGES CXX)
+
 
 find_package(
-  Python
+  Python 3.8 REQUIRED
   COMPONENTS Interpreter Development.Module
-  REQUIRED)
+  OPTIONAL_COMPONENTS Development.SABIModule)
 
-add_custom_command(
-  OUTPUT pycblas.c
-  COMMENT
-  "Making ${CMAKE_CURRENT_BINARY_DIR}/src/pycblas.c from ${CMAKE_CURRENT_SOURCE_DIR}/src/pycblas.pyx"
-  COMMAND Python::Interpreter -m cython
-          "${CMAKE_CURRENT_SOURCE_DIR}/src/pycblas.pyx" --output-file pycblas.c
-          -E "PYCBLAS_ILP64=$<BOOL:${PYCBLAS_ILP64}>"
-  DEPENDS pycblas.pyx
-  VERBATIM)
 
-python_add_library(pycblas MODULE pycblas.c WITH_SOABI)
+find_package(nanobind CONFIG REQUIRED)
+
+nanobind_add_module(pycblas STABLE_ABI NB_STATIC src/pycblas.cpp)
 
 option(PYCBLAS_ILP64 "Use ILP64 interface (64-bit ints)" OFF)
 
@@ -44,7 +38,6 @@ endif()
 
 
 target_compile_definitions(pycblas PRIVATE $<$<BOOL:${PYCBLAS_ILP64}>:PYCBLAS_ILP64>)
-
 
 include_directories(src)
 
