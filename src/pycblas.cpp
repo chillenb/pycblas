@@ -12,13 +12,19 @@ using namespace nb::literals;
 #define IS_C_ORDER(x) ((x).stride(1) == 1)
 #define IS_F_ORDER(x) ((x).stride(0) == 1)
 
-#define CHK_DIMS(M, N, X, Y)                                                   \
+#define CHK_DIMS_L2(M, N, X, Y)                                                   \
   if ((Y).shape(0) != M || (X).shape(0) != N) {                                \
     throw std::length_error("Incompatible shapes");                            \
   }
 
-#define CHK_SYMDIMS(M, N, X, Y)                                                \
+#define CHK_DIMS_SYM_L2(M, N, X, Y)                                                \
   if ((M) != (N) || (Y).shape(0) != (N) || (X).shape(0) != (N)) {              \
+    throw std::length_error("Incompatible shapes");                            \
+  }
+
+#define CHK_DIMS_L3(M, N, K, A, B, C)                                             \
+  if ((A).shape(0) != M || (A).shape(1) != K || (B).shape(0) != K ||           \
+      (B).shape(1) != N || (C).shape(0) != M || (C).shape(1) != N) {           \
     throw std::length_error("Incompatible shapes");                            \
   }
 
@@ -31,6 +37,39 @@ using namespace nb::literals;
     order = CblasColMajor;                                                     \
   } else {                                                                     \
     throw std::runtime_error("A must be C or F contiguous");                   \
+  }
+
+#define ORDER_A3                                                               \
+  if (IS_C_ORDER(A)) {                                                         \
+    lda = A.stride(0);                                                         \
+    transa = (order == CblasRowMajor) ? CblasNoTrans : CblasTrans;             \
+  } else if (IS_F_ORDER(A)) {                                                  \
+    lda = A.stride(1);                                                         \
+    transa = (order == CblasColMajor) ? CblasNoTrans : CblasTrans;             \
+  } else {                                                                     \
+    throw std::runtime_error("A must be C or F contiguous");                   \
+  }
+
+#define ORDER_B3                                                               \
+  if (IS_C_ORDER(B)) {                                                         \
+    ldb = B.stride(0);                                                         \
+    transb = (order == CblasRowMajor) ? CblasNoTrans : CblasTrans;             \
+  } else if (IS_F_ORDER(B)) {                                                  \
+    ldb = B.stride(1);                                                         \
+    transb = (order == CblasColMajor) ? CblasNoTrans : CblasTrans;             \
+  } else {                                                                     \
+    throw std::runtime_error("B must be C or F contiguous");                   \
+  }
+
+#define ORDER_C3                                                               \
+  if (IS_C_ORDER(C)) {                                                         \
+    ldc = C.stride(0);                                                         \
+    order = CblasRowMajor;                                                     \
+  } else if (IS_F_ORDER(C)) {                                                  \
+    ldc = C.stride(1);                                                         \
+    order = CblasColMajor;                                                     \
+  } else {                                                                     \
+    throw std::runtime_error("C must be C or F contiguous");                   \
   }
 
 CBLAS_UPLO _cb_uplo(char uplo) {
@@ -415,7 +454,7 @@ void _cb_sgemv(nb::ndarray<float, nb::ndim<2>> A,
   CBLAS_INT lda;
   CBLAS_ORDER order;
   ORDER_A;
-  CHK_DIMS(M, N, X, Y);
+  CHK_DIMS_L2(M, N, X, Y);
   CBLAS_INT incX = X.stride(0);
   CBLAS_INT incY = Y.stride(0);
   cblas_sgemv(order, CblasNoTrans, M, N, alpha, A.data(), lda, X.data(), incX,
@@ -430,7 +469,7 @@ void _cb_dgemv(nb::ndarray<double, nb::ndim<2>> A,
   CBLAS_INT lda;
   CBLAS_ORDER order;
   ORDER_A;
-  CHK_DIMS(M, N, X, Y);
+  CHK_DIMS_L2(M, N, X, Y);
   CBLAS_INT incX = X.stride(0);
   CBLAS_INT incY = Y.stride(0);
   cblas_dgemv(order, CblasNoTrans, M, N, alpha, A.data(), lda, X.data(), incX,
@@ -446,7 +485,7 @@ void _cb_cgemv(nb::ndarray<std::complex<float>, nb::ndim<2>> A,
   CBLAS_INT lda;
   CBLAS_ORDER order;
   ORDER_A;
-  CHK_DIMS(M, N, X, Y);
+  CHK_DIMS_L2(M, N, X, Y);
   CBLAS_INT incX = X.stride(0);
   CBLAS_INT incY = Y.stride(0);
   cblas_cgemv(order, CblasNoTrans, M, N, reinterpret_cast<const void *>(&alpha),
@@ -465,7 +504,7 @@ void _cb_zgemv(nb::ndarray<std::complex<double>, nb::ndim<2>> A,
   CBLAS_INT lda;
   CBLAS_ORDER order;
   ORDER_A;
-  CHK_DIMS(M, N, X, Y);
+  CHK_DIMS_L2(M, N, X, Y);
   CBLAS_INT incX = X.stride(0);
   CBLAS_INT incY = Y.stride(0);
   cblas_zgemv(order, CblasNoTrans, M, N, reinterpret_cast<const void *>(&alpha),
@@ -484,7 +523,7 @@ void _cb_chemv(char uplo, nb::ndarray<std::complex<float>, nb::ndim<2>> A,
   CBLAS_INT lda;
   CBLAS_ORDER order;
   ORDER_A;
-  CHK_SYMDIMS(M, N, X, Y);
+  CHK_DIMS_SYM_L2(M, N, X, Y);
   CBLAS_INT incX = X.stride(0);
   CBLAS_INT incY = Y.stride(0);
   cblas_chemv(order, _cb_uplo(uplo), N, reinterpret_cast<const void *>(&alpha),
@@ -503,7 +542,7 @@ void _cb_zhemv(char uplo, nb::ndarray<std::complex<double>, nb::ndim<2>> A,
   CBLAS_INT lda;
   CBLAS_ORDER order;
   ORDER_A;
-  CHK_SYMDIMS(M, N, X, Y);
+  CHK_DIMS_SYM_L2(M, N, X, Y);
   CBLAS_INT incX = X.stride(0);
   CBLAS_INT incY = Y.stride(0);
   cblas_zhemv(order, _cb_uplo(uplo), N, reinterpret_cast<const void *>(&alpha),
@@ -513,7 +552,6 @@ void _cb_zhemv(char uplo, nb::ndarray<std::complex<double>, nb::ndim<2>> A,
               reinterpret_cast<void *>(Y.data()), incY);
 }
 
-
 void _cb_ssymv(char uplo, nb::ndarray<float, nb::ndim<2>> A,
                nb::ndarray<float, nb::ndim<2>> X,
                nb::ndarray<float, nb::ndim<2>> Y, float alpha, float beta) {
@@ -522,7 +560,7 @@ void _cb_ssymv(char uplo, nb::ndarray<float, nb::ndim<2>> A,
   CBLAS_INT lda;
   CBLAS_ORDER order;
   ORDER_A;
-  CHK_SYMDIMS(M, N, X, Y);
+  CHK_DIMS_SYM_L2(M, N, X, Y);
   CBLAS_INT incX = X.stride(0);
   CBLAS_INT incY = Y.stride(0);
   cblas_ssymv(order, _cb_uplo(uplo), N, alpha, A.data(), lda, X.data(), incX,
@@ -537,12 +575,91 @@ void _cb_dsymv(char uplo, nb::ndarray<double, nb::ndim<2>> A,
   CBLAS_INT lda;
   CBLAS_ORDER order;
   ORDER_A;
-  CHK_SYMDIMS(M, N, X, Y);
+  CHK_DIMS_SYM_L2(M, N, X, Y);
   CBLAS_INT incX = X.stride(0);
   CBLAS_INT incY = Y.stride(0);
   cblas_dsymv(order, _cb_uplo(uplo), N, alpha, A.data(), lda, X.data(), incX,
               beta, Y.data(), incY);
 }
+
+void _cb_sgemm(nb::ndarray<float, nb::ndim<2>> A,
+               nb::ndarray<float, nb::ndim<2>> B,
+               nb::ndarray<float, nb::ndim<2>> C, float alpha, float beta) {
+  CBLAS_INT M = C.shape(0);
+  CBLAS_INT N = C.shape(1);
+  CBLAS_INT K = A.shape(1);
+  CBLAS_INT lda, ldb, ldc;
+  CBLAS_TRANSPOSE transa, transb;
+  CBLAS_ORDER order;
+  ORDER_C3;
+  ORDER_A3;
+  ORDER_B3;
+  CHK_DIMS_L3(M, N, K, A, B, C);
+  cblas_sgemm(order, transa, transb, M, N, K, alpha, A.data(), lda,
+              B.data(), ldb, beta, C.data(), ldc);
+}
+
+void _cb_dgemm(nb::ndarray<double, nb::ndim<2>> A,
+               nb::ndarray<double, nb::ndim<2>> B,
+               nb::ndarray<double, nb::ndim<2>> C, double alpha, double beta) {
+  CBLAS_INT M = C.shape(0);
+  CBLAS_INT N = C.shape(1);
+  CBLAS_INT K = A.shape(1);
+  CBLAS_INT lda, ldb, ldc;
+  CBLAS_TRANSPOSE transa, transb;
+  CBLAS_ORDER order;
+  ORDER_C3;
+  ORDER_A3;
+  ORDER_B3;
+  CHK_DIMS_L3(M, N, K, A, B, C);
+  cblas_dgemm(order, transa, transb, M, N, K, alpha, A.data(), lda,
+              B.data(), ldb, beta, C.data(), ldc);
+}
+
+void _cb_cgemm(nb::ndarray<std::complex<float>, nb::ndim<2>> A,
+               nb::ndarray<std::complex<float>, nb::ndim<2>> B,
+               nb::ndarray<std::complex<float>, nb::ndim<2>> C,
+               std::complex<float> alpha, std::complex<float> beta) {
+  CBLAS_INT M = C.shape(0);
+  CBLAS_INT N = C.shape(1);
+  CBLAS_INT K = A.shape(1);
+  CBLAS_INT lda, ldb, ldc;
+  CBLAS_TRANSPOSE transa, transb;
+  CBLAS_ORDER order;
+  ORDER_C3;
+  ORDER_A3;
+  ORDER_B3;
+  CHK_DIMS_L3(M, N, K, A, B, C);
+  cblas_cgemm(order, transa, transb, M, N, K,
+              reinterpret_cast<const void *>(&alpha),
+              reinterpret_cast<const void *>(A.data()), lda,
+              reinterpret_cast<const void *>(B.data()), ldb,
+              reinterpret_cast<const void *>(&beta),
+              reinterpret_cast<void *>(C.data()), ldc);
+}
+
+void _cb_zgemm(nb::ndarray<std::complex<double>, nb::ndim<2>> A,
+               nb::ndarray<std::complex<double>, nb::ndim<2>> B,
+               nb::ndarray<std::complex<double>, nb::ndim<2>> C,
+               std::complex<double> alpha, std::complex<double> beta) {
+  CBLAS_INT M = C.shape(0);
+  CBLAS_INT N = C.shape(1);
+  CBLAS_INT K = A.shape(1);
+  CBLAS_INT lda, ldb, ldc;
+  CBLAS_TRANSPOSE transa, transb;
+  CBLAS_ORDER order;
+  ORDER_C3;
+  ORDER_A3;
+  ORDER_B3;
+  CHK_DIMS_L3(M, N, K, A, B, C);
+  cblas_zgemm(order, transa, transb, M, N, K,
+              reinterpret_cast<const void *>(&alpha),
+              reinterpret_cast<const void *>(A.data()), lda,
+              reinterpret_cast<const void *>(B.data()), ldb,
+              reinterpret_cast<const void *>(&beta),
+              reinterpret_cast<void *>(C.data()), ldc);
+}
+
 
 NB_MODULE(pycblas, m) {
   m.def("sdot", &_cb_sdot, "X"_a.noconvert(), "Y"_a.noconvert());
@@ -604,5 +721,16 @@ NB_MODULE(pycblas, m) {
         "beta"_a = std::complex<float>(0.0f));
   m.def("zhemv", &_cb_zhemv, "uplo"_a, "A"_a.noconvert(), "X"_a.noconvert(),
         "Y"_a.noconvert(), "alpha"_a = std::complex<double>(1.0),
+        "beta"_a = std::complex<double>(0.0));
+  
+  m.def("sgemm", &_cb_sgemm, "A"_a.noconvert(), "B"_a.noconvert(),
+        "C"_a.noconvert(), "alpha"_a = 1.0f, "beta"_a = 0.0f);
+  m.def("dgemm", &_cb_dgemm, "A"_a.noconvert(), "B"_a.noconvert(),
+        "C"_a.noconvert(), "alpha"_a = 1.0, "beta"_a = 0.0);
+  m.def("cgemm", &_cb_cgemm, "A"_a.noconvert(), "B"_a.noconvert(),
+        "C"_a.noconvert(), "alpha"_a = std::complex<float>(1.0f),
+        "beta"_a = std::complex<float>(0.0f));
+  m.def("zgemm", &_cb_zgemm, "A"_a.noconvert(), "B"_a.noconvert(),
+        "C"_a.noconvert(), "alpha"_a = std::complex<double>(1.0),
         "beta"_a = std::complex<double>(0.0));
 }
