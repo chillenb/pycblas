@@ -1,5 +1,6 @@
 # cython: language_level=3
 
+import numpy as np
 from cblas cimport *
 
 ctypedef double complex dcomplex
@@ -214,5 +215,212 @@ def cblas_scal(scalar_t[:] x, scalar_t factor):
     
 
 
+# Level 2
 
+def cblas_gemv(scalar_t alpha, scalar_t[:,:] A, scalar_t[:] x, scalar_t beta, scalar_t[:] y=None):
+    if A.strides[1] // sizeof(scalar_t) == 1:
+        cblas_gemvC(alpha, A, x, beta, y)
+    elif A.strides[0] // sizeof(scalar_t) == 1:
+        cblas_gemvF(alpha, A, x, beta, y)
+    else:
+        raise ValueError("Matrix A must be contiguous in either C or F order")
+
+# C-contig
+def cblas_gemvC(scalar_t alpha, scalar_t[:,::1] A, scalar_t[:] x, scalar_t beta, scalar_t[:] y):
     
+        cdef CBLAS_INT incx = x.strides[0] // sizeof(scalar_t)
+        cdef CBLAS_INT incy = y.strides[0] // sizeof(scalar_t)
+        cdef CBLAS_INT M = A.shape[0]
+        cdef CBLAS_INT N = A.shape[1]
+        cdef CBLAS_INT lda = A.strides[0] // sizeof(scalar_t)
+    
+        if scalar_t is double:
+            cblas_dgemv(CblasRowMajor, CblasNoTrans, M, N, alpha, &A[0,0], lda, &x[0], incx, beta, &y[0], incy)
+        elif scalar_t is float:
+            cblas_sgemv(CblasRowMajor, CblasNoTrans, M, N, alpha, &A[0,0], lda, &x[0], incx, beta, &y[0], incy)
+        elif scalar_t is dcomplex:
+            cblas_zgemv(CblasRowMajor, CblasNoTrans, M, N, <void*> &alpha, <void*> &A[0,0], lda, <void*> &x[0], incx, <void*> &beta, <void*> &y[0], incy)
+        elif scalar_t is fcomplex:
+            cblas_cgemv(CblasRowMajor, CblasNoTrans, M, N, <void*> &alpha, <void*> &A[0,0], lda, <void*> &x[0], incx, <void*> &beta, <void*> &y[0], incy)
+
+# F-contig
+def cblas_gemvF(scalar_t alpha, scalar_t[::1,:] A, scalar_t[:] x, scalar_t beta, scalar_t[:] y):
+    
+        cdef CBLAS_INT incx = x.strides[0] // sizeof(scalar_t)
+        cdef CBLAS_INT incy = y.strides[0] // sizeof(scalar_t)
+        cdef CBLAS_INT M = A.shape[0]
+        cdef CBLAS_INT N = A.shape[1]
+        cdef CBLAS_INT lda = A.strides[1] // sizeof(scalar_t)
+    
+        if scalar_t is double:
+            cblas_dgemv(CblasColMajor, CblasNoTrans, M, N, alpha, &A[0,0], lda, &x[0], incx, beta, &y[0], incy)
+        elif scalar_t is float:
+            cblas_sgemv(CblasColMajor, CblasNoTrans, M, N, alpha, &A[0,0], lda, &x[0], incx, beta, &y[0], incy)
+        elif scalar_t is dcomplex:
+            cblas_zgemv(CblasColMajor, CblasNoTrans, M, N, <void*> &alpha, <void*> &A[0,0], lda, <void*> &x[0], incx, <void*> &beta, <void*> &y[0], incy)
+        elif scalar_t is fcomplex:
+            cblas_cgemv(CblasColMajor, CblasNoTrans, M, N, <void*> &alpha, <void*> &A[0,0], lda, <void*> &x[0], incx, <void*> &beta, <void*> &y[0], incy)
+
+
+def cblas_ger(real_t alpha, real_t[:] x, real_t[:] y, real_t[:,:] A):
+    cblas_gerc(alpha, x, y, A)
+    
+def cblas_gerc(scalar_t alpha, scalar_t[:] x, scalar_t[:] y, scalar_t[:,:] A):
+
+    if A.strides[1] // sizeof(scalar_t) == 1:
+        cblas_gercC(alpha, x, y, A)
+    elif A.strides[0] // sizeof(scalar_t) == 1:
+        cblas_gercF(alpha, x, y, A)
+    else:
+        raise ValueError("Matrix A must be contiguous in either C or F order")
+
+
+def cblas_gercC(scalar_t alpha, scalar_t[:] x, scalar_t[:] y, scalar_t[:,::1] A):
+    
+        cdef CBLAS_INT incx = x.strides[0] // sizeof(scalar_t)
+        cdef CBLAS_INT incy = y.strides[0] // sizeof(scalar_t)
+        cdef CBLAS_INT M = A.shape[0]
+        cdef CBLAS_INT N = A.shape[1]
+        cdef CBLAS_INT lda = A.strides[0] // sizeof(scalar_t)
+    
+        if scalar_t is double:
+            cblas_dger(CblasRowMajor, M, N, alpha, &x[0], incx, &y[0], incy, &A[0,0], lda)
+        elif scalar_t is float:
+            cblas_sger(CblasRowMajor, M, N, alpha, &x[0], incx, &y[0], incy, &A[0,0], lda)
+        elif scalar_t is dcomplex:
+            cblas_zgerc(CblasRowMajor, M, N, <void*> &alpha, <void*> &x[0], incx, <void*> &y[0], incy, <void*> &A[0,0], lda)
+        elif scalar_t is fcomplex:
+            cblas_cgerc(CblasRowMajor, M, N, <void*> &alpha, <void*> &x[0], incx, <void*> &y[0], incy, <void*> &A[0,0], lda)
+
+def cblas_gercF(scalar_t alpha, scalar_t[:] x, scalar_t[:] y, scalar_t[::1,:] A):
+    
+        cdef CBLAS_INT incx = x.strides[0] // sizeof(scalar_t)
+        cdef CBLAS_INT incy = y.strides[0] // sizeof(scalar_t)
+        cdef CBLAS_INT M = A.shape[0]
+        cdef CBLAS_INT N = A.shape[1]
+        cdef CBLAS_INT lda = A.strides[1] // sizeof(scalar_t)
+    
+        if scalar_t is double:
+            cblas_dger(CblasColMajor, M, N, alpha, &x[0], incx, &y[0], incy, &A[0,0], lda)
+        elif scalar_t is float:
+            cblas_sger(CblasColMajor, M, N, alpha, &x[0], incx, &y[0], incy, &A[0,0], lda)
+        elif scalar_t is dcomplex:
+            cblas_zgerc(CblasColMajor, M, N, <void*> &alpha, <void*> &x[0], incx, <void*> &y[0], incy, <void*> &A[0,0], lda)
+        elif scalar_t is fcomplex:
+            cblas_cgerc(CblasColMajor, M, N, <void*> &alpha, <void*> &x[0], incx, <void*> &y[0], incy, <void*> &A[0,0], lda)
+
+
+def cblas_geru(scalar_t alpha, scalar_t[:] x, scalar_t[:] y, scalar_t[:,:] A):
+
+    if A.strides[1] // sizeof(scalar_t) == 1:
+        cblas_geruC(alpha, x, y, A)
+    elif A.strides[0] // sizeof(scalar_t) == 1:
+        cblas_geruF(alpha, x, y, A)
+    else:
+        raise ValueError("Matrix A must be contiguous in either C or F order")
+
+
+def cblas_geruC(scalar_t alpha, scalar_t[:] x, scalar_t[:] y, scalar_t[:,::1] A):
+    
+        cdef CBLAS_INT incx = x.strides[0] // sizeof(scalar_t)
+        cdef CBLAS_INT incy = y.strides[0] // sizeof(scalar_t)
+        cdef CBLAS_INT M = A.shape[0]
+        cdef CBLAS_INT N = A.shape[1]
+        cdef CBLAS_INT lda = A.strides[0] // sizeof(scalar_t)
+    
+        if scalar_t is double:
+            cblas_dger(CblasRowMajor, M, N, alpha, &x[0], incx, &y[0], incy, &A[0,0], lda)
+        elif scalar_t is float:
+            cblas_sger(CblasRowMajor, M, N, alpha, &x[0], incx, &y[0], incy, &A[0,0], lda)
+        elif scalar_t is dcomplex:
+            cblas_zgeru(CblasRowMajor, M, N, <void*> &alpha, <void*> &x[0], incx, <void*> &y[0], incy, <void*> &A[0,0], lda)
+        elif scalar_t is fcomplex:
+            cblas_cgeru(CblasRowMajor, M, N, <void*> &alpha, <void*> &x[0], incx, <void*> &y[0], incy, <void*> &A[0,0], lda)
+
+def cblas_geruF(scalar_t alpha, scalar_t[:] x, scalar_t[:] y, scalar_t[::1,:] A):
+    
+        cdef CBLAS_INT incx = x.strides[0] // sizeof(scalar_t)
+        cdef CBLAS_INT incy = y.strides[0] // sizeof(scalar_t)
+        cdef CBLAS_INT M = A.shape[0]
+        cdef CBLAS_INT N = A.shape[1]
+        cdef CBLAS_INT lda = A.strides[1] // sizeof(scalar_t)
+    
+        if scalar_t is double:
+            cblas_dger(CblasColMajor, M, N, alpha, &x[0], incx, &y[0], incy, &A[0,0], lda)
+        elif scalar_t is float:
+            cblas_sger(CblasColMajor, M, N, alpha, &x[0], incx, &y[0], incy, &A[0,0], lda)
+        elif scalar_t is dcomplex:
+            cblas_zgeru(CblasColMajor, M, N, <void*> &alpha, <void*> &x[0], incx, <void*> &y[0], incy, <void*> &A[0,0], lda)
+        elif scalar_t is fcomplex:
+            cblas_cgeru(CblasColMajor, M, N, <void*> &alpha, <void*> &x[0], incx, <void*> &y[0], incy, <void*> &A[0,0], lda)
+
+
+def cblas_gemm(scalar_t[:,:] A, scalar_t[:,:] B, scalar_t alpha=1.0, scalar_t beta=0.0, scalar_t[:,:] C=None, outcontig='C'):
+    cdef CBLAS_ORDER la, lb, lc
+    cdef CBLAS_INT M, N, K, lda, ldb, ldc
+    cdef CBLAS_TRANSPOSE transa, transb
+    cdef int return_array = 0
+    
+    if A.strides[1] // sizeof(scalar_t) == 1: # C contig
+        la = CblasRowMajor
+        lda = A.strides[0] // sizeof(scalar_t)
+    elif A.strides[0] // sizeof(scalar_t) == 1: # F contig
+        la = CblasColMajor
+        lda = A.strides[1] // sizeof(scalar_t)
+    else:
+        raise ValueError("Matrix A must be contiguous in either C or F order")
+    M = A.shape[0]
+    K = A.shape[1]
+
+
+    if B.strides[1] // sizeof(scalar_t) == 1: # C contig
+        lb = CblasRowMajor
+        ldb = B.strides[0] // sizeof(scalar_t)
+    elif B.strides[0] // sizeof(scalar_t) == 1: # F contig
+        lb = CblasColMajor
+        ldb = B.strides[1] // sizeof(scalar_t)
+    else:
+        raise ValueError("Matrix B must be contiguous in either C or F order")
+    
+    N = B.shape[1]
+    if K != B.shape[0]:
+        raise ValueError("A and B must have the same inner dimension")
+    
+    if C is None:
+        if beta == 0.0:
+            npC = np.zeros_like(A, shape=(M, N), order=outcontig)
+        else:
+            npC = np.empty_like(A, shape=(M, N), order=outcontig)
+        return_array = 1
+        C = npC
+        lc = CblasRowMajor if outcontig == 'C' else CblasColMajor
+    else:
+        if C.shape[0] != M or C.shape[1] != N:
+            raise ValueError("C must have the same shape as the result")
+        if C.strides[1] // sizeof(scalar_t) == 1: # C contig
+            lc = CblasRowMajor
+        elif C.strides[0] // sizeof(scalar_t) == 1: # F contig
+            lc = CblasColMajor
+        else:
+            raise ValueError("Matrix C must be contiguous in either C or F order")
+
+    if lc == CblasRowMajor:
+        transa = CblasNoTrans if la == CblasRowMajor else CblasTrans
+        transb = CblasNoTrans if lb == CblasRowMajor else CblasTrans
+        ldc = C.strides[0] // sizeof(scalar_t)
+    else:
+        transa = CblasNoTrans if la == CblasColMajor else CblasTrans
+        transb = CblasNoTrans if lb == CblasColMajor else CblasTrans
+        ldc = C.strides[1] // sizeof(scalar_t)
+    
+    if scalar_t is double:
+        cblas_dgemm(lc, transa, transb, M, N, K, alpha, &A[0,0], lda, &B[0,0], ldb, beta, &C[0,0], ldc)
+    elif scalar_t is float:
+        cblas_sgemm(lc, transa, transb, M, N, K, alpha, &A[0,0], lda, &B[0,0], ldb, beta, &C[0,0], ldc)
+    elif scalar_t is dcomplex:
+        cblas_zgemm(lc, transa, transb, M, N, K, <void*> &alpha, <void*> &A[0,0], lda, <void*> &B[0,0], ldb, <void*> &beta, <void*> &C[0,0], ldc)
+    elif scalar_t is fcomplex:
+        cblas_cgemm(lc, transa, transb, M, N, K, <void*> &alpha, <void*> &A[0,0], lda, <void*> &B[0,0], ldb, <void*> &beta, <void*> &C[0,0], ldc)
+    
+    if return_array:
+        return npC
