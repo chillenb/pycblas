@@ -1,4 +1,3 @@
-import numpy as np
 from threadpoolctl import MKLController
 
 _mkl_ctrl = MKLController()

@@ -14,6 +14,7 @@ CblasUnit = 132
 CblasLeft = 141
 CblasRight = 142
 
+
 def get_elem_strides(arr):
     """Get the strides of an array in elements, not bytes
 
@@ -21,7 +22,7 @@ def get_elem_strides(arr):
     ----------
     arr : numpy.ndarray
         Input array
-    
+
     Returns
     -------
     tuple
@@ -38,7 +39,7 @@ def get_elem_strides(arr):
 
 def leading_dimension_and_order(arr):
     """Get the leading dimension and memory order of an array
-    
+
     Parameters
     ----------
     arr : numpy.ndarray
@@ -62,14 +63,14 @@ def leading_dimension_and_order(arr):
 
 def get_array_args(output_layout, arr):
     """Get the array arguments for a BLAS function
-    
+
     Parameters
     ----------
     output_layout : int
         Layout of the output array (CblasRowMajor or CblasColMajor)
     arr : numpy.ndarray
         Input array
-    
+
     Returns
     -------
     outarr : numpy.ndarray

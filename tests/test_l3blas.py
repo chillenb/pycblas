@@ -1,9 +1,11 @@
-from pymkl.cblas import l3
-from pymkl.util import types
-import numpy as np
 import itertools
 
+import numpy as np
 import pytest
+
+from pymkl.cblas import l3
+from pymkl.util import types
+
 
 @pytest.mark.parametrize("dtype", types.scalar_types)
 def test_gemm(dtype):

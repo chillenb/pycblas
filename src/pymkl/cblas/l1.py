@@ -1,9 +1,11 @@
-from pymkl._loader import _mkl_lib
-from pymkl.util import types
-import numpy as np
 import ctypes
 
-_MKL_INT = types._MKL_INT
+import numpy as np
+
+from pymkl._loader import _mkl_lib
+from pymkl.util import types
+
+_MKL_INT = types.MKL_INT
 
 sasum = _mkl_lib.cblas_sasum
 sasum.restype = ctypes.c_float
@@ -32,19 +34,12 @@ def asum(x):
     elem_size = x.dtype.itemsize
     incx = x.strides[0] // elem_size
     if scalar_type == np.float32:
-        return sasum(_MKL_INT(size),
-                     x.ctypes.data_as(types.c_float_p),
-                     _MKL_INT(incx))
+        return sasum(_MKL_INT(size), x.ctypes.data_as(types.c_float_p), _MKL_INT(incx))
     if scalar_type == np.float64:
-        return dasum(_MKL_INT(size),
-                     x.ctypes.data_as(types.c_double_p),
-                     _MKL_INT(incx))
+        return dasum(_MKL_INT(size), x.ctypes.data_as(types.c_double_p), _MKL_INT(incx))
     if scalar_type == np.complex64:
-        return scasum(_MKL_INT(size),
-                      x.ctypes.data_as(ctypes.c_void_p),
-                      _MKL_INT(incx))
+        return scasum(_MKL_INT(size), x.ctypes.data_as(ctypes.c_void_p), _MKL_INT(incx))
     if scalar_type == np.complex128:
-        return dzasum(_MKL_INT(size),
-                      x.ctypes.data_as(ctypes.c_void_p),
-                      _MKL_INT(incx))
-    raise ValueError("Unsupported type: {}".format(scalar_type))
+        return dzasum(_MKL_INT(size), x.ctypes.data_as(ctypes.c_void_p), _MKL_INT(incx))
+    msg = f"Unsupported type: {scalar_type}"
+    raise ValueError(msg)

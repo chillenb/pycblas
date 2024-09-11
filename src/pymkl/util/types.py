@@ -1,11 +1,13 @@
-import numpy as np
 import ctypes
 
-_MKL_INT = ctypes.c_int
+import numpy as np
+
+MKL_INT = ctypes.c_int
 c_float_p = ctypes.POINTER(ctypes.c_float)
 c_double_p = ctypes.POINTER(ctypes.c_double)
 
 scalar_types = [np.float32, np.float64, np.complex64, np.complex128]
+
 
 def random(shape, dtype=np.float64, order="C", rng=None):
     """Generate a random array
@@ -51,15 +53,14 @@ def typechar(nptype):
     """
     if nptype == np.float32:
         return "s"
-    elif nptype == np.float64:
+    if nptype == np.float64:
         return "d"
-    elif nptype == np.complex64:
+    if nptype == np.complex64:
         return "c"
-    elif nptype == np.complex128:
+    if nptype == np.complex128:
         return "z"
-    else:
-        msg = "Unsupported type: {}".format(nptype)
-        raise ValueError(msg)
+    msg = f"Unsupported type: {nptype}"
+    raise ValueError(msg)
 
 
 def check_vec_types(*args):
@@ -89,6 +90,7 @@ def check_vec_types(*args):
             raise ValueError(msg)
     return scalar_type, size
 
+
 def check_nd_types(*args):
     """Check that all arguments are arrays of the same type
 
@@ -107,6 +109,7 @@ def check_nd_types(*args):
             raise ValueError(msg)
     return scalar_type
 
+
 def check_matmul_shapes(a, b, c):
     """Check that the shapes of the input arrays are compatible for matrix multiplication.
 
@@ -118,7 +121,7 @@ def check_matmul_shapes(a, b, c):
         Second input array, shape (k, n)
     c : array_like
         Output array, shape (m, n)
-    
+
     Returns
     -------
     tuple
