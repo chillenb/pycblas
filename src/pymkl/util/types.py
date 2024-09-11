@@ -7,7 +7,7 @@ c_double_p = ctypes.POINTER(ctypes.c_double)
 
 scalar_types = [np.float32, np.float64, np.complex64, np.complex128]
 
-def random(shape, dtype=np.float64):
+def random(shape, dtype=np.float64, order="C", rng=None):
     """Generate a random array
 
     Parameters
@@ -22,14 +22,18 @@ def random(shape, dtype=np.float64):
     numpy.ndarray
         Random array
     """
+    if rng is None:
+        rng = np.random.default_rng()
     if dtype not in scalar_types:
-        msg = "Unsupported type: {}".format(dtype)
+        msg = f"Unsupported type: {dtype}"
         raise ValueError(msg)
-    if dtype == np.complex64 or dtype == np.complex128:
-        real = np.random.random(shape).astype(dtype)
-        imag = np.random.random(shape).astype(dtype)
-        return real + 1j * imag
-    return np.random.random(shape).astype(dtype)
+    if dtype in (np.complex64, np.complex128):
+        real = rng.random(shape).astype(dtype)
+        imag = rng.random(shape).astype(dtype)
+        arr = real + 1j * imag
+    else:
+        arr = rng.random(shape).astype(dtype)
+    return np.asarray(arr, order=order)
 
 
 def typechar(nptype):
@@ -84,3 +88,46 @@ def check_vec_types(*args):
             msg = "All arguments must be 1D arrays"
             raise ValueError(msg)
     return scalar_type, size
+
+def check_nd_types(*args):
+    """Check that all arguments are arrays of the same type
+
+    Returns
+    -------
+    numpy.dtype.type
+        Datatype of the input arrays
+    """
+    if not args:
+        msg = "At least one argument must be provided"
+        raise ValueError(msg)
+    scalar_type = args[0].dtype.type
+    for arg in args:
+        if arg.dtype.type != scalar_type:
+            msg = "All arguments must have the same type"
+            raise ValueError(msg)
+    return scalar_type
+
+def check_matmul_shapes(a, b, c):
+    """Check that the shapes of the input arrays are compatible for matrix multiplication.
+
+    Parameters
+    ----------
+    a : array_like
+        First input array, shape (m, k)
+    b : array_like
+        Second input array, shape (k, n)
+    c : array_like
+        Output array, shape (m, n)
+    
+    Returns
+    -------
+    tuple
+        (m, n, k)
+    """
+    m = a.shape[0]
+    k = a.shape[1]
+    n = b.shape[1]
+    if b.shape[0] == k and c.shape == (m, n):
+        return m, n, k
+    msg = f"Bad matmul shapes: {a.shape}, {b.shape} -> {c.shape}"
+    raise ValueError(msg)
