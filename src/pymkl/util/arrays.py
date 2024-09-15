@@ -14,6 +14,20 @@ CblasUnit = 132
 CblasLeft = 141
 CblasRight = 142
 
+def get_cblas_side(side):
+    if side.lower() == "l":
+        return CblasLeft
+    if side.lower() == "r":
+        return CblasRight
+    raise ValueError(f"Invalid side {side}")
+
+def get_cblas_uplo(uplo):
+    if uplo.lower() == "u":
+        return CblasUpper
+    if uplo.lower() == "l":
+        return CblasLower
+    raise ValueError(f"Invalid uplo {uplo}")
+
 
 def get_elem_strides(arr):
     """Get the strides of an array in elements, not bytes

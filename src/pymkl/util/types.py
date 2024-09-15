@@ -7,7 +7,21 @@ c_float_p = ctypes.POINTER(ctypes.c_float)
 c_double_p = ctypes.POINTER(ctypes.c_double)
 
 scalar_types = [np.float32, np.float64, np.complex64, np.complex128]
+type2index = {np.float32: 0, np.float64: 1, np.complex64: 2, np.complex128: 3}
+type2prefix = {np.float32: "s", np.float64: "d", np.complex64: "c", np.complex128: "z"}
 
+
+def scalar_arg_to_ctype(nptype, scalar):
+    if nptype == np.float32:
+        return ctypes.c_float(scalar)
+    if nptype == np.float64:
+        return ctypes.c_double(scalar)
+    if nptype == np.complex64:
+        return (ctypes.c_float * 2)(scalar.real, scalar.imag)
+    if nptype == np.complex128:
+        return (ctypes.c_double * 2)(scalar.real, scalar.imag)
+    msg = f"Unsupported type: {nptype}"
+    raise ValueError(msg)
 
 def random(shape, dtype=np.float64, order="C", rng=None):
     """Generate a random array
