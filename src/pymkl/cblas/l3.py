@@ -235,7 +235,7 @@ def syrk(uplo, a, c, alpha=1.0, beta=0.0):
         _MKL_INT(ldc),
     )
 
-def herk(uplo, a, c, alpha=1.0, beta=0.0):
+def herk(uplo, conjtrans, a, c, alpha=1.0, beta=0.0):
     """Hermitian rank-k update.
     c := alpha * a @ a.conj().T + beta * c
 
@@ -243,6 +243,8 @@ def herk(uplo, a, c, alpha=1.0, beta=0.0):
     ----------
     uplo : char
         'U' or 'L'. Specifies whether the upper or lower triangular part of the array c is used.
+    conjtrans:
+        'N' or 'C'. Specifies whether to use a or a.conj().T
     a : array_like
         n by k array
     c : array_like
@@ -253,27 +255,139 @@ def herk(uplo, a, c, alpha=1.0, beta=0.0):
         by default 0.0
     """
     ldc, outorder = arrays.leading_dimension_and_order(c)
-    aflip, transa, lda = arrays.get_array_args(outorder, a)
-    if transa == arrays.CblasTrans:
-        transa = arrays.CblasConjTrans
+    lda, a_order = arrays.leading_dimension_and_order(a)
+    trans = arrays.get_cblas_conjtrans(conjtrans)
+    if a_order != outorder:
+        raise ValueError("a and c must have the same order")
+    if trans != arrays.CblasNoTrans:
+        k, _ = a.shape
+    else:
+        _, k = a.shape
     cblas_uplo = arrays.get_cblas_uplo(uplo)
     n = c.shape[0]
-    k = a.shape[1]
     if c.shape != (n, n):
         raise ValueError("c must be square")
-    if a.shape[0] != n:
-        raise ValueError("a must have the same number of rows as c")
     scalar_type = types.check_nd_types(a, c)
     herk_func = herk_funcs[scalar_type]
     herk_func(
         ctypes.c_int(outorder),
         ctypes.c_int(cblas_uplo),
-        ctypes.c_int(transa),
+        ctypes.c_int(trans),
         _MKL_INT(n),
         _MKL_INT(k),
         types.scalar_arg_to_real_ctype(scalar_type, alpha),
+        a.ctypes.data_as(ctypes.c_void_p),
+        _MKL_INT(lda),
+        types.scalar_arg_to_real_ctype(scalar_type, beta),
+        c.ctypes.data_as(ctypes.c_void_p),
+        _MKL_INT(ldc),
+    )
+
+def syr2k(uplo, a, b, c, alpha=1.0, beta=0.0):
+    """Symmetric rank-2k update.
+    c := alpha * a @ b.T + alpha * b @ a.T + beta * c
+
+    Parameters
+    ----------
+    uplo : char
+        'U' or 'L'. Specifies whether the upper or lower triangular part of the array c is used.
+    a : array_like
+        n by k array
+    b : array_like
+        n by k array
+    c : array_like
+        n by n array
+    alpha : scalar, optional
+        by default 1.0
+    beta : scalar, optional
+        by default 0.0
+    """
+    ldc, outorder = arrays.leading_dimension_and_order(c)
+    aflip, transa, lda = arrays.get_array_args(outorder, a)
+    bflip, transb, ldb = arrays.get_array_args(outorder, b)
+    if transa != transb:
+        raise ValueError("a and b must be both F-contig or C-contig")
+    cblas_uplo = arrays.get_cblas_uplo(uplo)
+    n = c.shape[0]
+    k = a.shape[1]
+    if c.shape != (n, n):
+        raise ValueError("c must be square")
+    if a.shape[0] != n or b.shape[0] != n:
+        raise ValueError("a and b must have the same number of rows as c")
+    if b.shape[1] != k:
+        raise ValueError("a and b must have the same number of columns")
+    scalar_type = types.check_nd_types(a, b, c)
+    syr2k_func = syr2k_funcs[scalar_type]
+    syr2k_func(
+        ctypes.c_int(outorder),
+        ctypes.c_int(cblas_uplo),
+        ctypes.c_int(transa),
+        _MKL_INT(n),
+        _MKL_INT(k),
+        types.scalar_arg_to_ctype(scalar_type, alpha),
         aflip.ctypes.data_as(ctypes.c_void_p),
         _MKL_INT(lda),
+        bflip.ctypes.data_as(ctypes.c_void_p),
+        _MKL_INT(ldb),
+        types.scalar_arg_to_ctype(scalar_type, beta),
+        c.ctypes.data_as(ctypes.c_void_p),
+        _MKL_INT(ldc),
+    )
+
+def her2k(uplo, conjtrans, a, b, c, alpha=1.0, beta=0.0):
+    """Hermitian rank-2k update.
+    c := alpha * a @ b.conj().T + alpha * b @ a.conj().T + beta * c
+
+    Parameters
+    ----------
+    uplo : char
+        'U' or 'L'. Specifies whether the upper or lower triangular part of the array c is used.
+    conjtrans:
+        'N' or 'C'. Specifies whether to use a, b or a.conj().T, b.conj().T
+    a : array_like
+        n by k array
+    b : array_like
+        n by k array
+    c : array_like
+        n by n array
+    alpha : scalar, optional
+        by default 1.0
+    beta : float, optional
+        by default 0.0
+    """
+    ldc, outorder = arrays.leading_dimension_and_order(c)
+    lda, a_order = arrays.leading_dimension_and_order(a)
+    ldb, b_order = arrays.leading_dimension_and_order(b)
+    trans = arrays.get_cblas_conjtrans(conjtrans)
+    if a_order != outorder or a_order != b_order:
+        raise ValueError("a, b, and c must have the same order")
+    if trans != arrays.CblasNoTrans:
+        ka, na = a.shape
+        kb, nb = b.shape
+    else:
+        na, ka = a.shape
+        nb, kb = b.shape
+    if na != nb or ka != kb:
+        raise ValueError("a and b must have the same shape")
+    cblas_uplo = arrays.get_cblas_uplo(uplo)
+    n = c.shape[0]
+    if c.shape != (n, n):
+        raise ValueError("c must be square")
+    if na != n:
+        raise ValueError("a and c must have the same number of rows")
+    scalar_type = types.check_nd_types(a, b, c)
+    her2k_func = her2k_funcs[scalar_type]
+    her2k_func(
+        ctypes.c_int(outorder),
+        ctypes.c_int(cblas_uplo),
+        ctypes.c_int(trans),
+        _MKL_INT(n),
+        _MKL_INT(ka),
+        types.scalar_arg_to_ctype(scalar_type, alpha),
+        a.ctypes.data_as(ctypes.c_void_p),
+        _MKL_INT(lda),
+        b.ctypes.data_as(ctypes.c_void_p),
+        _MKL_INT(ldb),
         types.scalar_arg_to_real_ctype(scalar_type, beta),
         c.ctypes.data_as(ctypes.c_void_p),
         _MKL_INT(ldc),

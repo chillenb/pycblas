@@ -104,7 +104,54 @@ def test_herk(dtype):
             c += c.T.conj()
             c = np.asarray(c, order=outorder)
             correct_res = alpha * a @ a.T.conj() + beta * c
-            l3.herk(uplo, a, c, alpha=alpha, beta=beta)
+            l3.herk(uplo, 'N', a, c, alpha=alpha, beta=beta)
+            if uplo == 'U':
+                correct_res = np.triu(correct_res)
+                output = np.triu(c)
+            else:
+                correct_res = np.tril(correct_res)
+                output = np.tril(c)
+            assert np.allclose(output, correct_res)
+
+@pytest.mark.parametrize("dtype", types.scalar_types)
+def test_syr2k(dtype):
+    n = 30
+    k = 20
+    rng = np.random.default_rng(0)
+    for outorder in ("C", "F"):
+        for a_order in ("C", "F"):
+            for uplo in ("U", "L"):
+                a = types.random((n, k), dtype=dtype, order=a_order, rng=rng)
+                b = types.random((n, k), dtype=dtype, order=a_order, rng=rng)
+                alpha = rng.random()
+                beta = rng.random()
+                c = types.random((n, n), dtype=dtype, order=outorder, rng=rng)
+                correct_res = alpha * a @ b.T + alpha * b @ a.T + beta * c
+                l3.syr2k(uplo, a, b, c, alpha=alpha, beta=beta)
+                if uplo == 'U':
+                    correct_res = np.triu(correct_res)
+                    output = np.triu(c)
+                else:
+                    correct_res = np.tril(correct_res)
+                    output = np.tril(c)
+                assert np.allclose(output, correct_res)
+
+@pytest.mark.parametrize("dtype", [np.complex64, np.complex128])
+def test_her2k(dtype):
+    n = 30
+    k = 20
+    rng = np.random.default_rng(0)
+    for outorder in ("C", "F"):
+        for uplo in ("U", "L"):
+            a = types.random((n, k), dtype=dtype, order=outorder, rng=rng)
+            b = types.random((n, k), dtype=dtype, order=outorder, rng=rng)
+            alpha = rng.random()
+            beta = rng.random()
+            c = types.random((n, n), dtype=dtype, order=outorder, rng=rng)
+            c += c.T.conj()
+            c = np.asarray(c, order=outorder)
+            correct_res = alpha * a @ b.T.conj() + alpha * b @ a.T.conj() + beta * c
+            l3.her2k(uplo, 'N', a, b, c, alpha=alpha, beta=beta)
             if uplo == 'U':
                 correct_res = np.triu(correct_res)
                 output = np.triu(c)

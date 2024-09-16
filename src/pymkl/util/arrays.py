@@ -28,6 +28,14 @@ def get_cblas_uplo(uplo):
         return CblasLower
     raise ValueError(f"Invalid uplo {uplo}")
 
+def get_cblas_conjtrans(trans):
+    if trans.lower() == "n":
+        return CblasNoTrans
+    if trans.lower() == "t":
+        return CblasTrans
+    if trans.lower() == "c":
+        return CblasConjTrans
+    raise ValueError(f"Invalid trans {trans}")
 
 def get_elem_strides(arr):
     """Get the strides of an array in elements, not bytes
