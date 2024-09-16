@@ -23,6 +23,18 @@ def scalar_arg_to_ctype(nptype, scalar):
     msg = f"Unsupported type: {nptype}"
     raise ValueError(msg)
 
+def scalar_arg_to_real_ctype(nptype, scalar):
+    if nptype == np.float32:
+        return ctypes.c_float(scalar)
+    if nptype == np.float64:
+        return ctypes.c_double(scalar)
+    if nptype == np.complex64:
+        return ctypes.c_float(scalar.real)
+    if nptype == np.complex128:
+        return ctypes.c_double(scalar.real)
+    msg = f"Unsupported type: {nptype}"
+    raise ValueError(msg)
+
 def random(shape, dtype=np.float64, order="C", rng=None):
     """Generate a random array
 

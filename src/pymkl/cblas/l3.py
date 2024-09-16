@@ -61,6 +61,14 @@ zsyrk.restype = None
 
 syrk_funcs = { np.float32: ssyrk, np.float64: dsyrk, np.complex64: csyrk, np.complex128: zsyrk }
 
+
+cherk = _mkl_lib.cblas_cherk
+cherk.restype = None
+zherk = _mkl_lib.cblas_zherk
+zherk.restype = None
+
+herk_funcs = { np.complex64: cherk, np.complex128: zherk }
+
 ssyr2k = _mkl_lib.cblas_ssyr2k
 ssyr2k.restype = None
 dsyr2k = _mkl_lib.cblas_dsyr2k
@@ -71,6 +79,13 @@ zsyr2k = _mkl_lib.cblas_zsyr2k
 zsyr2k.restype = None
 
 syr2k_funcs = { np.float32: ssyr2k, np.float64: dsyr2k, np.complex64: csyr2k, np.complex128: zsyr2k }
+
+cher2k = _mkl_lib.cblas_cher2k
+cher2k.restype = None
+zher2k = _mkl_lib.cblas_zher2k
+zher2k.restype = None
+
+her2k_funcs = { np.complex64: cher2k, np.complex128: zher2k }
 
 strmm = _mkl_lib.cblas_strmm
 strmm.restype = None
@@ -174,6 +189,92 @@ def symm(side, uplo, a, b, c, alpha=1.0, beta=0.0):
         b.ctypes.data_as(ctypes.c_void_p),
         _MKL_INT(ldb),
         types.scalar_arg_to_ctype(scalar_type, beta),
+        c.ctypes.data_as(ctypes.c_void_p),
+        _MKL_INT(ldc),
+    )
+
+def syrk(uplo, a, c, alpha=1.0, beta=0.0):
+    """Symmetric rank-k update.
+    c := alpha * a @ a.T + beta * c
+
+    Parameters
+    ----------
+    uplo : char
+        'U' or 'L'. Specifies whether the upper or lower triangular part of the array c is used.
+    a : array_like
+        n by k array
+    c : array_like
+        n by n array
+    alpha : scalar, optional
+        by default 1.0
+    beta : scalar, optional
+        by default 0.0
+    """
+    ldc, outorder = arrays.leading_dimension_and_order(c)
+    aflip, transa, lda = arrays.get_array_args(outorder, a)
+    cblas_uplo = arrays.get_cblas_uplo(uplo)
+    n = c.shape[0]
+    k = a.shape[1]
+    if c.shape != (n, n):
+        raise ValueError("c must be square")
+    if a.shape[0] != n:
+        raise ValueError("a must have the same number of rows as c")
+    scalar_type = types.check_nd_types(a, c)
+    syrk_func = syrk_funcs[scalar_type]
+    syrk_func(
+        ctypes.c_int(outorder),
+        ctypes.c_int(cblas_uplo),
+        ctypes.c_int(transa),
+        _MKL_INT(n),
+        _MKL_INT(k),
+        types.scalar_arg_to_ctype(scalar_type, alpha),
+        aflip.ctypes.data_as(ctypes.c_void_p),
+        _MKL_INT(lda),
+        types.scalar_arg_to_ctype(scalar_type, beta),
+        c.ctypes.data_as(ctypes.c_void_p),
+        _MKL_INT(ldc),
+    )
+
+def herk(uplo, a, c, alpha=1.0, beta=0.0):
+    """Hermitian rank-k update.
+    c := alpha * a @ a.conj().T + beta * c
+
+    Parameters
+    ----------
+    uplo : char
+        'U' or 'L'. Specifies whether the upper or lower triangular part of the array c is used.
+    a : array_like
+        n by k array
+    c : array_like
+        n by n array
+    alpha : float, optional
+        by default 1.0
+    beta : float, optional
+        by default 0.0
+    """
+    ldc, outorder = arrays.leading_dimension_and_order(c)
+    aflip, transa, lda = arrays.get_array_args(outorder, a)
+    if transa == arrays.CblasTrans:
+        transa = arrays.CblasConjTrans
+    cblas_uplo = arrays.get_cblas_uplo(uplo)
+    n = c.shape[0]
+    k = a.shape[1]
+    if c.shape != (n, n):
+        raise ValueError("c must be square")
+    if a.shape[0] != n:
+        raise ValueError("a must have the same number of rows as c")
+    scalar_type = types.check_nd_types(a, c)
+    herk_func = herk_funcs[scalar_type]
+    herk_func(
+        ctypes.c_int(outorder),
+        ctypes.c_int(cblas_uplo),
+        ctypes.c_int(transa),
+        _MKL_INT(n),
+        _MKL_INT(k),
+        types.scalar_arg_to_real_ctype(scalar_type, alpha),
+        aflip.ctypes.data_as(ctypes.c_void_p),
+        _MKL_INT(lda),
+        types.scalar_arg_to_real_ctype(scalar_type, beta),
         c.ctypes.data_as(ctypes.c_void_p),
         _MKL_INT(ldc),
     )

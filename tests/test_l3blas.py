@@ -68,3 +68,47 @@ def test_hemm(dtype):
                     correct_res = alpha * b @ a + beta * c
                 l3.hemm(side, uplo, a, b, c, alpha=alpha, beta=beta)
                 assert np.allclose(c, correct_res)
+
+@pytest.mark.parametrize("dtype", types.scalar_types)
+def test_syrk(dtype):
+    n = 30
+    k = 20
+    rng = np.random.default_rng(0)
+    for outorder in ("C", "F"):
+        for uplo in ("U", "L"):
+            a = types.random((n, k), dtype=dtype, order=outorder, rng=rng)
+            alpha = rng.random()
+            beta = rng.random()
+            c = types.random((n, n), dtype=dtype, order=outorder, rng=rng)
+            correct_res = alpha * a @ a.T + beta * c
+            l3.syrk(uplo, a, c, alpha=alpha, beta=beta)
+            if uplo == 'U':
+                correct_res = np.triu(correct_res)
+                output = np.triu(c)
+            else:
+                correct_res = np.tril(correct_res)
+                output = np.tril(c)
+            assert np.allclose(output, correct_res)
+
+@pytest.mark.parametrize("dtype", [np.complex64, np.complex128])
+def test_herk(dtype):
+    n = 30
+    k = 20
+    rng = np.random.default_rng(0)
+    for outorder in ("C", "F"):
+        for uplo in ("U", "L"):
+            a = types.random((n, k), dtype=dtype, order=outorder, rng=rng)
+            alpha = rng.random()
+            beta = rng.random()
+            c = types.random((n, n), dtype=dtype, rng=rng)
+            c += c.T.conj()
+            c = np.asarray(c, order=outorder)
+            correct_res = alpha * a @ a.T.conj() + beta * c
+            l3.herk(uplo, a, c, alpha=alpha, beta=beta)
+            if uplo == 'U':
+                correct_res = np.triu(correct_res)
+                output = np.triu(c)
+            else:
+                correct_res = np.tril(correct_res)
+                output = np.tril(c)
+            assert np.allclose(output, correct_res)
