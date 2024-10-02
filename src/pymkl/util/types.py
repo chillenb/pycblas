@@ -160,3 +160,32 @@ def check_matmul_shapes(a, b, c):
         return m, n, k
     msg = f"Bad matmul shapes: {a.shape}, {b.shape} -> {c.shape}"
     raise ValueError(msg)
+
+def check_vmatmul_shapes(a, b, c):
+    """Check that the shapes of the input arrays are compatible for matrix multiplication.
+
+    Parameters
+    ----------
+    a : array_like
+        First input array, shape (m, k)
+    b : array_like
+        Second input array, shape (k, n)
+    c : array_like
+        Output array, shape (m, n)
+
+    Returns
+    -------
+    tuple
+        (m, n, k)
+    """
+    if a.shape[0] != c.shape[0] or a.shape[0] != b.shape[0]:
+        msg = f"Bad vmatmul shapes: {a.shape}, {b.shape} -> {c.shape}"
+        raise ValueError(msg)
+    nbatch = a.shape[0]
+    m = a.shape[-2]
+    k = a.shape[-1]
+    n = b.shape[-1]
+    if b.shape[-2] == k and c.shape[-2] == m and c.shape[-1] == n:
+        return nbatch, m, n, k
+    msg = f"Bad matmul shapes: {a.shape}, {b.shape} -> {c.shape}"
+    raise ValueError(msg)
