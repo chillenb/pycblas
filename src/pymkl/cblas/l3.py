@@ -109,11 +109,19 @@ ztrsm.restype = None
 
 trsm_funcs = { np.float32: strsm, np.float64: dtrsm, np.complex64: ctrsm, np.complex128: ztrsm }
 
-def gemm(a, b, c, alpha=1.0, beta=0.0):
+def gemm(a, b, c, alpha=1.0, beta=0.0, conja=False, conjb=False):
     ldc, outorder = arrays.leading_dimension_and_order(c)
     m, n, k = types.check_matmul_shapes(a, b, c)
     aflip, transa, lda = arrays.get_array_args(outorder, a)
     bflip, transb, ldb = arrays.get_array_args(outorder, b)
+    if conja:
+        if transa == arrays.CblasNoTrans:
+            raise ValueError("conja=True requires a and c to have different order")
+        transa = arrays.CblasConjTrans
+    if conjb:
+        if transb == arrays.CblasNoTrans:
+            raise ValueError("conjb=True requires b and c to have different order")
+        transb = arrays.CblasConjTrans
     scalar_type = types.check_nd_types(a, b, c)
     gemm_func = gemm_funcs[scalar_type]
     gemm_func(
@@ -391,4 +399,57 @@ def her2k(uplo, conjtrans, a, b, c, alpha=1.0, beta=0.0):
         types.scalar_arg_to_real_ctype(scalar_type, beta),
         c.ctypes.data_as(ctypes.c_void_p),
         _MKL_INT(ldc),
+    )
+
+def trmm(a, b, alpha=1.0, diag=False, uplo='U', transconja=False):
+    """Triangular matrix-matrix multiplication.
+    b := alpha * a @ b
+
+    Parameters
+    ----------
+    a : array_like
+        n by n array
+    b : array_like
+        n by k array
+    alpha : scalar, optional
+        by default 1.0
+    diag : bool, optional
+        by default False
+    transconja : bool, optional
+        by default False
+    """
+    types.check_matmul_shapes(a, b, b)
+    ldb, outorder = arrays.leading_dimension_and_order(b)
+    aflip, transa, lda = arrays.get_array_args(outorder, a)
+    uplo = arrays.get_cblas_uplo(uplo)
+    m, n = b.shape
+    side = arrays.CblasLeft
+
+    if transa == arrays.CblasTrans:
+        uplo = arrays.CblasUpper if uplo == arrays.CblasLower else arrays.CblasLower
+    if transconja:
+        if transa == arrays.CblasNoTrans:
+            transa = arrays.CblasConjTrans
+        else:
+            raise ValueError("conja=True requires a and b to have different order")
+    diag = arrays.CblasUnit if diag else arrays.CblasNonUnit
+
+    if a.shape[0] != a.shape[1]:
+        raise ValueError("a must be square")
+
+    scalar_type = types.check_nd_types(a, b)
+    trmm_func = trmm_funcs[scalar_type]
+    trmm_func(
+        ctypes.c_int(outorder),
+        ctypes.c_int(side),
+        ctypes.c_int(uplo),
+        ctypes.c_int(transa),
+        ctypes.c_int(diag),
+        _MKL_INT(m),
+        _MKL_INT(n),
+        types.scalar_arg_to_ctype(scalar_type, alpha),
+        aflip.ctypes.data_as(ctypes.c_void_p),
+        _MKL_INT(lda),
+        b.ctypes.data_as(ctypes.c_void_p),
+        _MKL_INT(ldb),
     )
