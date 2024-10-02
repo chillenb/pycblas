@@ -1,6 +1,7 @@
 import itertools
 
 import numpy as np
+import scipy
 import pytest
 
 from pymkl.cblas import l3
@@ -180,6 +181,30 @@ def test_trmm(dtype):
                     correct_res = alpha * Acopy @ B
                     try:
                         l3.trmm(A, B, alpha=alpha, uplo=uplo, transconja=transconja)
+                        assert np.allclose(B, correct_res)
+                    except ValueError:
+                        break
+
+@pytest.mark.parametrize("dtype", types.scalar_types)
+def test_trsm(dtype):
+    m = 30
+    n = 20
+    rng = np.random.default_rng(0)
+    for outorder in ("C", "F"):
+        for aorder in ("C", "F"):
+            for transconja in (True, False):
+                for uplo in ("U", "L"):
+                    A = types.random((m, m), dtype=dtype, rng=rng) + 1e-1 * np.eye(m)
+                    A = np.triu(A) if uplo == "U" else np.tril(A)
+                    A = np.asarray(A, order=aorder)
+                    B = types.random((m, n), dtype=dtype, order=outorder, rng=rng)
+                    Acopy = A.copy()
+                    if transconja:
+                        Acopy = Acopy.T.conj()
+                    alpha = types.random((1,), dtype=dtype, rng=rng)[0]
+                    correct_res = alpha * scipy.linalg.solve(Acopy, B)
+                    try:
+                        l3.trsm(A, B, alpha=alpha, uplo=uplo, transconja=transconja)
                         assert np.allclose(B, correct_res)
                     except ValueError:
                         break
