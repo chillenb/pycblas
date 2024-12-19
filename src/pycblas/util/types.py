@@ -178,9 +178,11 @@ def check_vmatmul_shapes(a, b, c):
     tuple
         (m, n, k)
     """
-    if a.shape[0] != c.shape[0] or a.shape[0] != b.shape[0]:
-        msg = f"Bad vmatmul shapes: {a.shape}, {b.shape} -> {c.shape}"
-        raise ValueError(msg)
+    nbatch = max(a.shape[0], b.shape[0], c.shape[0])
+    for arr in (a, b, c):
+        if arr.shape[0] != nbatch and arr.shape[0] != 1:
+            msg = f"Bad vmatmul shapes: {a.shape}, {b.shape} -> {c.shape}"
+            raise ValueError(msg)
     nbatch = a.shape[0]
     m = a.shape[-2]
     k = a.shape[-1]

@@ -2,8 +2,8 @@ import ctypes
 
 import numpy as np
 
-from pymkl._loader import _mkl_lib
-from pymkl.util import arrays, types
+from pycblas._loader import _mkl_lib
+from pycblas.util import arrays, types
 
 _MKL_INT = types.MKL_INT
 

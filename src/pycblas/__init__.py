@@ -1,7 +1,7 @@
 """
 Copyright (c) 2024. All rights reserved.
 
-pymkl: Python bindings for Intel* oneAPI Math Kernel Library*
+pycblas: Python bindings for CBLAS
 """
 
 from __future__ import annotations

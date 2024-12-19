@@ -2,8 +2,8 @@ import ctypes
 
 import numpy as np
 
-from pymkl._loader import _mkl_lib
-from pymkl.util import arrays, types
+from pycblas._loader import _mkl_lib
+from pycblas.util import arrays, types
 
 _MKL_INT = types.MKL_INT
 
@@ -395,4 +395,32 @@ def gemm_batch_strided(a, b, c, alpha=1.0, beta=0.0, conja=False, conjb=False):
         _MKL_INT(ldc),
         _MKL_INT(cstride),
         _MKL_INT(nbatch),
+    )
+
+def dgmm(a, x, c, side='L'):
+    ldc, outorder = arrays.leading_dimension_and_order(c)
+    _, transa, lda = arrays.get_array_args(outorder, a)
+    if transa == arrays.CblasTrans:
+        raise ValueError("a and c must have the same order")
+    if a.shape != c.shape:
+        raise ValueError("a and c must have the same shape")
+    assert x.ndim == 1
+    incx = arrays.get_elem_strides(x)[0]
+    scalar_type = types.check_nd_types(a, x, c)
+    dgmm_func = dgmm_batch_strided_funcs[scalar_type]
+    dgmm_func(
+        ctypes.c_int(outorder),
+        ctypes.c_int(arrays.get_cblas_side(side)),
+        _MKL_INT(a.shape[0]),
+        _MKL_INT(a.shape[1]),
+        a.ctypes.data_as(ctypes.c_void_p),
+        _MKL_INT(lda),
+        _MKL_INT(a.size),
+        x.ctypes.data_as(ctypes.c_void_p),
+        _MKL_INT(incx),
+        _MKL_INT(0),
+        c.ctypes.data_as(ctypes.c_void_p),
+        _MKL_INT(ldc),
+        _MKL_INT(c.size),
+        _MKL_INT(1),
     )

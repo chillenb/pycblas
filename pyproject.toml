@@ -4,11 +4,11 @@ build-backend = "hatchling.build"
 
 
 [project]
-name = "pymkl"
+name = "pycblas"
 authors = [
   { name = "Christopher Hillenbrand", email = "christopher.hillenbrand@yale.edu" },
 ]
-description = "Python bindings for Intel* oneAPI Math Kernel Library*"
+description = "Python bindings for CBLAS"
 readme = "README.md"
 requires-python = ">=3.8"
 classifiers = [
@@ -40,15 +40,15 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/chillenb/pymkl"
-"Bug Tracker" = "https://github.com/chillenb/pymkl/issues"
-Discussions = "https://github.com/chillenb/pymkl/discussions"
-Changelog = "https://github.com/chillenb/pymkl/releases"
+Homepage = "https://github.com/chillenb/pycblas"
+"Bug Tracker" = "https://github.com/chillenb/pycblas/issues"
+Discussions = "https://github.com/chillenb/pycblas/discussions"
+Changelog = "https://github.com/chillenb/pycblas/releases"
 
 
 [tool.hatch]
 version.source = "vcs"
-build.hooks.vcs.version-file = "src/pymkl/_version.py"
+build.hooks.vcs.version-file = "src/pycblas/_version.py"
 
 [tool.hatch.envs.default]
 features = ["test"]

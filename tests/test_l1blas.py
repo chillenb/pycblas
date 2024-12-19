@@ -1,7 +1,7 @@
 import numpy as np
 
-from pymkl.cblas import l1
-from pymkl.util import types
+from pycblas.cblas import l1
+from pycblas.util import types
 
 
 def test_asum():

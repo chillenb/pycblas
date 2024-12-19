@@ -4,8 +4,8 @@ import numpy as np
 import scipy
 import pytest
 
-from pymkl.cblas import blasext
-from pymkl.util import types
+from pycblas.cblas import blasext
+from pycblas.util import types
 
 
 @pytest.mark.parametrize("dtype", types.scalar_types)
